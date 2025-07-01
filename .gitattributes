@@ -1,0 +1,87 @@
+* text=auto
+
+*.java text eol=lf
+*.groovy text eol=lf
+*.scala text eol=lf
+*.kt text eol=lf
+
+*.yml text eol=lf
+*.yaml text eol=lf
+*.properties text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+
+*.gradle text eol=lf
+*.gradle.kts text eol=lf
+build.gradle text eol=lf
+settings.gradle text eol=lf
+gradlew text eol=lf
+*.pom text eol=lf
+
+*.sh text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+*.md text eol=lf
+*.txt text eol=lf
+*.adoc text eol=lf
+*.rst text eol=lf
+
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.jsx text eol=lf
+*.tsx text eol=lf
+*.vue text eol=lf
+
+*.ftl text eol=lf
+*.vm text eol=lf
+*.mustache text eol=lf
+*.thymeleaf text eol=lf
+
+*.sql text eol=lf
+
+*.jar binary
+*.war binary
+*.ear binary
+*.zip binary
+*.tar.gz binary
+*.tgz binary
+*.7z binary
+*.rar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+*.ico binary
+*.bmp binary
+*.tiff binary
+*.webp binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.p12 binary
+*.jks binary
+*.keystore binary
+*.truststore binary
+*.crt binary
+*.pem binary
+
+*.iml text eol=lf
+*.ipr text eol=lf
+*.iws text eol=lf
+
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.gitmodules text eol=lf
+
+*.min.js linguist-generated=true
+*.min.css linguist-generated=true
+/gradle/wrapper/* linguist-vendored=true
+gradlew linguist-vendored=true
+gradlew.bat linguist-vendored=true

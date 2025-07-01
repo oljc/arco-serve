@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <!-- 示例：抑制Spring Boot相关的误报 -->
+    <!--
+    <suppress>
+        <notes><![CDATA[
+            Spring Boot starter 组件通常会有一些误报，这里可以抑制已知的误报
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.boot/spring\-boot\-starter.*$</packageUrl>
+        <cve>CVE-2022-XXXXX</cve>
+    </suppress>
+    -->
+
+    <!-- 示例：抑制测试依赖的某些CVE -->
+    <!--
+    <suppress>
+        <notes><![CDATA[
+            测试环境的依赖漏洞，不影响生产环境
+        ]]></notes>
+        <gav regex="true">.*:.*:.*</gav>
+        <cve>CVE-YYYY-XXXXX</cve>
+    </suppress>
+    -->
+
+</suppressions>
