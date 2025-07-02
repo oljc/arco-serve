@@ -3,9 +3,6 @@ contact_links:
   - name: 📖 查看文档
     url: https://github.com/oljc/arco-serve/blob/main/README.md
     about: 在提问之前请先查看项目文档
-  - name: 💬 讨论
-    url: https://github.com/oljc/arco-serve/discussions
-    about: 对于一般性问题和讨论，请使用GitHub Discussions
   - name: 🔒 安全问题
     url: https://github.com/oljc/arco-serve/security/advisories/new
     about: 请通过私密方式报告安全相关问题
