@@ -99,10 +99,8 @@ checkstyle {
     toolVersion = '10.12.4'
     maxWarnings = 0
     maxErrors = 0
+    configDirectory.set(file("config/checkstyle"))
     configFile = file("config/checkstyle/checkstyle.xml")
-    configProperties = [
-        'config_loc': "${rootDir}/config/checkstyle"
-    ]
 }
 
 checkstyleMain {

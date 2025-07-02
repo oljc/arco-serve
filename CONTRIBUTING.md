@@ -56,9 +56,9 @@ git clone https://github.com/oljc/arco-serve.git
 
 访问以下地址验证服务启动成功：
 
-- 🌐 **健康检查**: http://localhost:8080/actuator/health
-- 💾 **H2 控制台**: http://localhost:8080/h2-console
-- 📊 **监控指标**: http://localhost:8080/actuator/metrics
+- 🌐 **健康检查**: http://localhost:9960/actuator/health
+- 💾 **H2 控制台**: http://localhost:9960/h2-console
+- 📊 **监控指标**: http://localhost:9960/actuator/metrics
 
 ### 新建分支
 
