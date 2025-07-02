@@ -9,7 +9,8 @@
 ![Java](https://img.shields.io/badge/Java-21-orange?style=plastic&logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.3-brightgreen?style=plastic&logo=springboot)
 ![Gradle](https://img.shields.io/badge/Gradle-8.0+-blue?style=plastic&logo=gradle)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=plastic)
+![License](https://img.shields.io/badge/License-MIT-4080FF?style=plastic)
+[![前端地址](https://img.shields.io/badge/前端地址-Arco%20Admin-brightgreen?style=plastic&logo=github)](https://github.com/oljc/arco-admin)
 
 **基于 Spring Boot 3.5 + JDK 21 的现代模块化 Arco Admin 后端应用仓库**
 
