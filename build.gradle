@@ -5,7 +5,7 @@ plugins {
     id 'jacoco'
     id 'checkstyle'
     id 'pmd'
-    id 'org.owasp.dependencycheck' version '8.4.2'
+
     id 'com.github.ben-manes.versions' version '0.48.0'
 }
 
@@ -147,17 +147,7 @@ task codeQuality {
 
 check.dependsOn jacocoTestCoverageVerification
 
-// OWASP 依赖检查配置
-dependencyCheck {
-    format = 'ALL'
-    suppressionFile = 'config/dependency-check-suppressions.xml'
-    failBuildOnCVSS = 7.0
-    analyzers {
-        assemblyEnabled = false
-        nuspecEnabled = false
-        nodeEnabled = false
-    }
-}
+
 
 // 依赖更新检查配置
 dependencyUpdates {

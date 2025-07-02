@@ -1,0 +1,195 @@
+name: Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  code-quality:
+    name: Code Quality & Testing
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Java 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Make gradlew executable
+      run: chmod +x gradlew
+
+    - name: Validate PR title format
+      uses: amannn/action-semantic-pull-request@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        types: |
+          feat
+          fix
+          docs
+          style
+          refactor
+          perf
+          test
+          chore
+          ci
+          build
+        requireScope: false
+        subjectPattern: ^(?![A-Z]).+$
+        subjectPatternError: |
+          The subject must start with a lowercase letter, not an uppercase letter.
+          Example: "feat: add user authentication" instead of "feat: Add user authentication"
+
+    - name: Run code quality checks
+      run: ./gradlew clean codeQuality
+
+    - name: Generate test coverage report
+      if: success() || failure()
+      uses: madrapps/jacoco-report@v1.6.1
+      with:
+        paths: |
+          ${{ github.workspace }}/build/reports/jacoco/test/jacocoTestReport.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+        min-coverage-overall: 80
+        min-coverage-changed-files: 80
+        title: Code Coverage Report
+        update-comment: true
+
+    - name: Check for TODO/FIXME comments
+      run: |
+        echo "🔍 Checking for TODO/FIXME comments..."
+        if grep -r "TODO\|FIXME" src/main/java/ --exclude-dir=target; then
+          echo "⚠️ Found TODO or FIXME comments that should be addressed:"
+          grep -rn "TODO\|FIXME" src/main/java/ --exclude-dir=target || true
+          echo ""
+          echo "If these comments are intentionally left, please explain in the PR description."
+          # Don't fail the build for TODO/FIXME comments, just warn
+        else
+          echo "✅ No pending TODO or FIXME comments found"
+        fi
+
+    - name: Check for sensitive information
+      run: |
+        echo "🔍 Scanning for potential sensitive information..."
+        SENSITIVE_PATTERNS="password|secret|token|key|credential|api_key"
+
+        # Exclude example/demo patterns and configuration templates
+        if grep -ri "$SENSITIVE_PATTERNS" src/ \
+           --exclude-dir=target \
+           --exclude="*.class" \
+           --exclude="*.jar" \
+           | grep -v "example" \
+           | grep -v "demo" \
+           | grep -v "template" \
+           | grep -v "// This is an example" \
+           | grep -v "# Configuration example"; then
+          echo "❌ Potential sensitive information detected:"
+          grep -rin "$SENSITIVE_PATTERNS" src/ \
+             --exclude-dir=target \
+             --exclude="*.class" \
+             --exclude="*.jar" \
+             | grep -v "example" \
+             | grep -v "demo" \
+             | grep -v "template" \
+             | grep -v "// This is an example" \
+             | grep -v "# Configuration example" || true
+          echo ""
+          echo "Please ensure no hardcoded passwords, keys, or other sensitive information is included."
+          exit 1
+        else
+          echo "✅ No obvious sensitive information detected"
+        fi
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: |
+          build/reports/tests/
+          build/reports/jacoco/
+          build/reports/checkstyle/
+          build/reports/pmd/
+
+  architecture-tests:
+    name: Architecture Tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Java 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Make gradlew executable
+      run: chmod +x gradlew
+
+    - name: Run architecture tests
+      run: ./gradlew test --tests="*ArchitectureTest*"
+
+  dependency-check:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Java 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+
+    - name: Make gradlew executable
+      run: chmod +x gradlew
+
+    - name: Check for dependency updates
+      run: ./gradlew dependencyUpdates
+
+    - name: Upload dependency report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-updates-report
+        path: build/dependencyUpdates/

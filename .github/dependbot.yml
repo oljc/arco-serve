@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "17:00"
+      timezone: "Asia/Shanghai"
+    commit-message:
+      prefix: "chore(deps)"
