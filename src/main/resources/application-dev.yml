@@ -2,23 +2,36 @@ server:
   port: 9960
 
 spring:
+  # 临时禁用数据库配置，使用内存数据库
   datasource:
-    url: jdbc:postgresql://localhost:5432/arco_serve
-    username: arco_user
-    password: arco_password
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # 如果要使用 PostgreSQL，请取消注释以下配置
+  # datasource:
+  #   url: jdbc:postgresql://localhost:5432/arco_serve
+  #   username: arco_user
+  #   password: arco_password
+  #   driver-class-name: org.postgresql.Driver
+  #   hikari:
+  #     maximum-pool-size: 10
+  #     minimum-idle: 2
 
   jpa:
     hibernate:
-      ddl-auto: update  # 开发环境使用update
+      ddl-auto: create-drop  # 开发环境使用create-drop
     show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
   security:
     user:
