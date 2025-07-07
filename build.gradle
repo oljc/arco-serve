@@ -5,8 +5,6 @@ plugins {
     id 'jacoco'
     id 'checkstyle'
     id 'pmd'
-
-    id 'com.github.ben-manes.versions' version '0.48.0'
 }
 
 group = 'io.github.oljc'
@@ -32,18 +30,17 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+    runtimeOnly 'org.postgresql:postgresql:42.7.3'
     runtimeOnly 'com.h2database:h2'
-    runtimeOnly 'org.postgresql:postgresql'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
 
@@ -139,28 +136,10 @@ pmdTest {
     }
 }
 
-task codeQuality {
+tasks.register('codeQuality') {
     group = 'verification'
     description = '运行代码检查'
     dependsOn 'checkstyleMain', 'checkstyleTest', 'pmdMain', 'pmdTest', 'test', 'jacocoTestReport'
 }
 
 check.dependsOn jacocoTestCoverageVerification
-
-
-
-// 依赖更新检查配置
-dependencyUpdates {
-    checkForGradleUpdate = true
-    outputFormatter = "html"
-    outputDir = "build/dependencyUpdates"
-
-    rejectVersionIf {
-        candidate.version.contains("alpha") ||
-        candidate.version.contains("beta") ||
-        candidate.version.contains("rc") ||
-        candidate.version.contains("M") ||
-        candidate.version.contains("CR") ||
-        candidate.version.contains("SNAPSHOT")
-    }
-}
