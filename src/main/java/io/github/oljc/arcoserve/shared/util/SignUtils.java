@@ -5,11 +5,9 @@ import org.springframework.util.StreamUtils;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -19,12 +17,15 @@ public final class SignUtils {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
     private static final String ACCESS_KEY_ID = "LJCDEMOYmE1MTU5OTBmNDg5ODlhNTQzMGUwY2YLJCDEMO";
-    private static final String SECRET_KEY = "LJCVd05qVXdObU0yT0RaaU5HWTJORGs0TURNek5HTTJZakV6WTJNNE9XVQ";
+    private static final String SECRET_KEY = "LJCVd05qVXdObU0yT0RaaU5HWTJORGs0TURNek5HTTJZakV6WTJNNE9XVQ==";
     private static final Set<String> IGNORED_HEADERS = Set.of(
-        "authorization", "content-type", "content-length", "user-agent", "expect", "presigned-expires"
+            "authorization", "content-type", "content-length", "user-agent", "accept-encoding",
+            "accept-language", "cache-control", "connection", "host", "origin", "pragma", "referer", "sec-ch-ua",
+            "sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-fetch-dest", "sec-fetch-mode", "sec-fetch-site", "expect" // 示例
     );
 
-    private SignUtils() {}
+    private SignUtils() {
+    }
 
     /**
      * 验签
@@ -37,45 +38,50 @@ public final class SignUtils {
 
         String signature = extractSignatureOnly(auth);
 
-        var signHeaders = getRequiredSignHeaders(request);
-        String canonicalHeaders = signHeaders.canonicalHeaders();
-        String signedHeaders = signHeaders.signedHeaders();
+        //获取请求头信息
+        Map<String, String> signHeaders = getHeadersMap(request);
+        String canonicalHeaders = SignHeaders(signHeaders)[1];
+        String signedHeaders = SignHeaders(signHeaders)[0];
+
 
         String method = request.getMethod();
         String uri = request.getRequestURI();
-        String query = request.getQueryString();
-        if (query == null) query = "";
 
+        // 获取参数
+        Map<String, String> query = new HashMap<>();
+        request.getParameterMap().forEach((k, v) -> {
+            if (v.length > 0) query.put(k, v[0]);
+        });
         // 读取请求体
         byte[] body = StreamUtils.copyToByteArray(request.getInputStream());
         String bodyHash = getHexEncodedBodyHash(body, request.getContentType());
 
         // 规范化查询参数
-        String canonicalQuery = canonicalizeQueryString(query);
+        String canonicalQuery = canonicalizeQueryString(query.toString()).replace("%7B", "").replace("%7D", "");
 
-        // 构造canonical request
-        String canonicalRequest = method + "\n" +
-                (uri.startsWith("/") ? uri : "/" + uri) + "\n" +
-                canonicalQuery + "\n" +
-                canonicalHeaders + "\n" +
-                signedHeaders + "\n" +
-                bodyHash;
-
+        String canonicalRequest = String.join("\n",
+                method.toUpperCase(),
+                uri.startsWith("/") ? uri : "/" + uri,
+                canonicalQuery,
+                canonicalHeaders + "\n", // 注意这里应包含多行并以换行结尾
+                signedHeaders,
+                bodyHash
+        );
+        System.out.println(canonicalRequest);
         String hashedCanonicalRequest = hashSHA256(canonicalRequest.getBytes(StandardCharsets.UTF_8));
 
         String scope = shortDate + "/" + fingerprint + "/oljc";
         String credential = ACCESS_KEY_ID + "/" + scope;
         String stringToSign = "LJC-HMAC-SHA256\n" + date + "\n" + scope + "\n" + hashedCanonicalRequest;
-
+        System.out.println(stringToSign + "\n ========  " + hashedCanonicalRequest + "\n ========  " + canonicalRequest);
         // 计算期望的签名
-        byte[] kDate = hmacSHA256(SECRET_KEY.getBytes(StandardCharsets.UTF_8), date);
-        byte[] kFingerprint = hmacSHA256(kDate, fingerprint);
-        byte[] kSigning = hmacSHA256(kFingerprint, "oljc");
-        byte[] sign = hmacSHA256(kSigning, stringToSign);
-        String expectedSignature = HexFormat.of().formatHex(sign);
+        String kDate = hmacSHA256(SECRET_KEY, date);
+        String kFingerprint = hmacSHA256(kDate, fingerprint);
+        String kSigning = hmacSHA256(kFingerprint, "oljc");
+        String sign = hmacSHA256(kSigning, stringToSign);
 
         // 比较签名
-        if (!expectedSignature.equals(signature)) {
+        if (!sign.equals(signature)) {
             throw new SecurityException("Signature mismatch");
         }
     }
@@ -117,35 +123,6 @@ public final class SignUtils {
     }
 
     /**
-     * 获取服务端要求的签名头部 - 使用安全策略，不信任前端
-     */
-    private static SignHeaders getRequiredSignHeaders(HttpServletRequest request) {
-
-        // 获取所有可签名的头部（排除被忽略的）
-        Map<String, String> availableHeaders = Collections.list(request.getHeaderNames())
-                .stream()
-                .filter(name -> !IGNORED_HEADERS.contains(name.toLowerCase()))
-                .collect(Collectors.toMap(
-                        name -> name.toLowerCase(),
-                        request::getHeader,
-                        (existing, replacement) -> existing,
-                        TreeMap::new
-                ));
-
-        // 构造规范头部
-        String canonicalHeaders = availableHeaders.entrySet()
-                .stream()
-                .map(entry -> entry.getKey() + ":" + trimHeader(entry.getValue()))
-                .collect(Collectors.joining("\n"));
-
-        String signedHeaders = String.join(";", availableHeaders.keySet());
-
-        return new SignHeaders(canonicalHeaders, signedHeaders);
-    }
-
-
-
-    /**
      * 清理头部值
      */
     private static String trimHeader(String header) {
@@ -180,7 +157,7 @@ public final class SignUtils {
                     List<String> values = entry.getValue();
 
                     if (values.size() == 1) {
-                        return key + "=" + values.get(0);
+                        return key + "=" + values.getFirst();
                     } else {
                         // 对于多值参数，按值排序后用&key=格式连接
                         values.sort(String::compareTo);
@@ -272,18 +249,65 @@ public final class SignUtils {
         }
     }
 
-    public static byte[] hmacSHA256(byte[] key, String data) throws Exception {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(key, "HmacSHA256"));
-            return mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new Exception("HMAC-SHA256 failed", e);
+    public static String hmacSHA256(String key, String message) throws Exception {
+        byte[] keyBytes = key.getBytes(StandardCharsets.UTF_8);
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(keyBytes, "HmacSHA256"));
+
+        byte[] rawHmac = mac.doFinal(messageBytes);
+        return bytesToHex(rawHmac);
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
         }
+        return sb.toString();
     }
 
     /**
      * 签名头部信息记录
+     * 获取服务端要求的签名头部 - 使用安全策略，不信任前端
+     *
      */
-    private record SignHeaders(String canonicalHeaders, String signedHeaders) {}
+    public static String[] SignHeaders(Map<String, String> headers) {
+        // 1. 过滤 headers 后端获取的是所有真实headers，和前端不同
+        List<String> keys = headers.keySet().stream()
+                .filter(k -> !IGNORED_HEADERS.contains(k.toLowerCase()))
+                .toList();
+
+        // 2. signedHeaderKeys：小写、排序、join(';')
+        String signedHeaderKeys = keys.stream()
+                .map(String::toLowerCase)
+                .sorted()
+                .collect(Collectors.joining(";"));
+
+        // 3. canonicalHeaders：小写key + trim后的value，按行拼接
+        String canonicalHeaders = keys.stream()
+                .sorted(Comparator.comparing(String::toLowerCase))
+                .map(k -> k + ":" + trimHeader(headers.get(k)))
+                .collect(Collectors.joining("\n"));
+
+        return new String[]{signedHeaderKeys, canonicalHeaders};
+    }
+
+    /**
+     * headers to map
+     *
+     * @param request the HTTP servlet request containing headers
+     * @return a map of header names and their corresponding values
+     */
+    public static Map<String, String> getHeadersMap(HttpServletRequest request) {
+        Map<String, String> headers = new HashMap<>();
+        Enumeration<String> headerNames = request.getHeaderNames();
+        while (headerNames.hasMoreElements()) {
+            String name = headerNames.nextElement();
+            String value = request.getHeader(name);
+            headers.put(name, value);
+        }
+        return headers;
+    }
 }
