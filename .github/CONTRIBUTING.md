@@ -101,6 +101,8 @@
    git push origin feature/your-feature-name
    ```
 
+开发细节参考 [开发文档](https://github.com/oljc/arco-serve.wiki.git)
+
 ## 📏 代码规范
 
 ### Java 代码规范
@@ -234,11 +236,5 @@ Closes #123
 
 使用 [功能请求模板](../../issues/new?assignees=&labels=enhancement&template=feature_request.md&title=%5BFEATURE%5D+) 来提出新功能建议。
 
-## 📞 联系方式
-
-如果您有任何问题，可以通过以下方式联系我们：
-
-- 创建 [Issue](https://github.com/oljc/arco-serve/issues)
-- 参与 [Discussions](https://github.com/oljc/arco-serve/discussions)
 
 再次感谢您的贡献！🎉 
