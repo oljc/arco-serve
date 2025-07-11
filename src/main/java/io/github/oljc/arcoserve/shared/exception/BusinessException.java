@@ -1,44 +1,34 @@
 package io.github.oljc.arcoserve.shared.exception;
 
+import io.github.oljc.arcoserve.shared.exception.Code;
+
 /**
  * 业务异常
  */
 public class BusinessException extends RuntimeException {
+    private final int code;
 
-    /**
-     * 错误码
-     */
-    private final Integer code;
+    public BusinessException(Code code) {
+        super(code.getMessage());
+        this.code = code.getCode();
+    }
 
-    /**
-     * 错误信息
-     */
-    private final String message;
-
-    public BusinessException(Integer code, String message) {
+    public BusinessException(int code, String message) {
         super(message);
         this.code = code;
-        this.message = message;
     }
 
-    public BusinessException(ResultCode resultCode) {
-        super(resultCode.getMessage());
-        this.code = resultCode.getCode();
-        this.message = resultCode.getMessage();
+    public BusinessException(Code code, Throwable cause) {
+        super(code.getMessage(), cause);
+        this.code = code.getCode();
     }
 
-    public BusinessException(ResultCode resultCode, String message) {
-        super(message);
-        this.code = resultCode.getCode();
-        this.message = message;
+    public BusinessException(int code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = code;
     }
 
-    public Integer getCode() {
+    public int getCode() {
         return code;
-    }
-
-    @Override
-    public String getMessage() {
-        return message;
     }
 }
