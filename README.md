@@ -95,7 +95,6 @@ arco-serve/
 
 欢迎参与贡献，请参考 [贡献指南](CONTRIBUTING.md)。
 
-后端:
 <a href="https://github.com/oljc/arco-serve/graphs/contributors"><img src="https://contrib.rocks/image?repo=oljc/arco-serve" />
 </a><br/>
 
