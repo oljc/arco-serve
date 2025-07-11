@@ -43,7 +43,7 @@ public class SignatureInterceptor implements HandlerInterceptor {
         }
 
         try {
-            SignUtils.verify(request, signature.maxAge());
+            SignUtils.verify(request);
         } catch (Exception e) {
             throw new BusinessException(ResultCode.SIGNATURE_VERIFICATION_FAILED, "签名校验失败: " + e.getMessage());
         }
