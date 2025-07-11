@@ -1,59 +1,28 @@
 package io.github.oljc.arcoserve.shared.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.data.domain.Page;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
- * 分页数据结构
- *
- * @param <T> 数据类型
+ * 通用分页响应结构
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record PageData<T>(
-    /**
-     * 数据列表
-     */
-    List<T> records,
-
-    /**
-     * 当前页码
-     */
-    Integer current,
-
-    /**
-     * 每页数量
-     */
-    Integer size,
-
-    /**
-     * 总记录数
-     */
-    Long total,
-
-    /**
-     * 总页数
-     */
-    Integer pages,
-
-    /**
-     * 是否有下一页
-     */
-    Boolean hasNext,
-
-    /**
-     * 是否有上一页
-     */
-    Boolean hasPrevious
+        List<T> records,
+        Integer current,
+        Integer size,
+        Long total,
+        Integer pages,
+        Boolean hasNext,
+        Boolean hasPrevious
 ) {
 
-    /**
-     * 从Spring Data Page构建
-     */
     public static <T> PageData<T> of(Page<T> page) {
         return new PageData<>(
                 page.getContent(),
-                page.getNumber() + 1, // Spring Data JPA从0开始
+                page.getNumber() + 1,
                 page.getSize(),
                 page.getTotalElements(),
                 page.getTotalPages(),
@@ -62,16 +31,14 @@ public record PageData<T>(
         );
     }
 
-    /**
-     * 从数据列表构建分页数据
-     */
-    public static <T> PageData<T> of(List<T> records, Integer current, Integer size, Long total) {
-        int pages = (int) Math.ceil((double) total / size);
+    public static <T> PageData<T> of(List<T> records, int current, int size, long total) {
+        int safeSize = Math.max(size, 1);
+        int pages = calculatePages(total, safeSize);
 
         return new PageData<>(
-                records,
+                records == null ? List.of() : records,
                 current,
-                size,
+                safeSize,
                 total,
                 pages,
                 current < pages,
@@ -79,12 +46,21 @@ public record PageData<T>(
         );
     }
 
-    /**
-     * 构建空页面
-     */
-    public static <T> PageData<T> empty(Integer current, Integer size) {
+    public static <T> PageData<T> empty() {
         return new PageData<>(
-                Collections.emptyList(),
+                List.of(),
+                1,
+                10,
+                0L,
+                0,
+                false,
+                false
+        );
+    }
+
+    public static <T> PageData<T> empty(int current, int size) {
+        return new PageData<>(
+                List.of(),
                 current,
                 size,
                 0L,
@@ -92,5 +68,9 @@ public record PageData<T>(
                 false,
                 false
         );
+    }
+
+    private static int calculatePages(long total, int size) {
+        return (int) Math.ceil((double) total / size);
     }
 }

@@ -11,38 +11,29 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 
 /**
- * 响应统一包装处理器
+ * 自动包装响应
  */
 @RestControllerAdvice
 public class ResponseAdvice implements ResponseBodyAdvice<Object> {
 
     @Override
     public boolean supports(MethodParameter returnType, Class<? extends HttpMessageConverter<?>> converterType) {
-        Class<?> parameterType = returnType.getParameterType();
+        Class<?> returnClass = returnType.getParameterType();
 
-        // 不包装ApiResponse类型的响应
-        if (ApiResponse.class.isAssignableFrom(parameterType)) {
-            return false;
-        }
+        if (ApiResponse.class.isAssignableFrom(returnClass)) return false;
 
-        // 不包装ResponseEntity类型的响应（通常来自异常处理器）
-        if (ResponseEntity.class.isAssignableFrom(parameterType)) {
-            return false;
-        }
-
-        // 不包装Spring框架的响应
-        if (returnType.getDeclaringClass().getName().startsWith("org.springframework") ||
-            returnType.getDeclaringClass().getName().startsWith("springfox")) {
-            return false;
-        }
-
-        return true;
+        // 不处理系统类和特殊的响应
+        String packageName = returnType.getDeclaringClass().getPackageName();
+        return !packageName.startsWith("org.springframework") && !ResponseEntity.class.isAssignableFrom(returnClass);
     }
 
     @Override
-    public Object beforeBodyWrite(Object body, MethodParameter returnType, MediaType selectedContentType,
-                                  Class<? extends HttpMessageConverter<?>> selectedConverterType,
-                                  ServerHttpRequest request, ServerHttpResponse response) {
+    public Object beforeBodyWrite(Object body,
+                                  MethodParameter returnType,
+                                  MediaType mediaType,
+                                  Class<? extends HttpMessageConverter<?>> converterType,
+                                  ServerHttpRequest request,
+                                  ServerHttpResponse response) {
 
         if (body instanceof String) {
             return JsonUtils.toJson(ApiResponse.success(body));

@@ -1,165 +1,61 @@
 package io.github.oljc.arcoserve.shared.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.github.oljc.arcoserve.shared.exception.Code;
 import org.slf4j.MDC;
 
-import java.util.List;
-
 /**
- * 统一API响应结构
- *
- * @param <T> 数据类型
+ * 统一 API 响应结构
  */
+@SuppressWarnings("unused")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(
-    /**
-     * 响应状态: success | error
-     */
-    String status,
-
-    /**
-     * 状态码
-     */
-    Integer code,
-
-    /**
-     * 响应消息
-     */
-    String message,
-
-    /**
-     * 响应数据
-     */
-    T data,
-
-    /**
-     * 错误详情（仅在error时存在）
-     */
-    List<ErrorDetail> errors,
-
-    /**
-     * 请求追踪ID
-     */
-    String traceId,
-
-    /**
-     * 响应时间戳
-     */
-    Long timestamp
+        String status,
+        Integer code,
+        String message,
+        T data,
+        Object error,
+        String traceId,
+        Long timestamp
 ) {
 
-    /**
-     * 错误详情
-     */
-    public record ErrorDetail(
-        String field,
-        String message,
-        Object rejectedValue,
-        String code
-    ) {}
-
-    /**
-     * 成功响应
-     */
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(
-                "success",
-                200,
-                "操作成功",
-                data,
-                null,
-                getCurrentTraceId(),
-                System.currentTimeMillis()
-        );
+        return of("success", 200, "操作成功", data, null);
     }
 
-    /**
-     * 成功响应 - 自定义消息
-     */
     public static <T> ApiResponse<T> success(T data, String message) {
+        return of("success", 200, message, data, null);
+    }
+
+    public static ApiResponse<Void> success() {
+        return of("success", 200, "操作成功", null, null);
+    }
+
+    public static <T> ApiResponse<T> error(Code code) {
+        return of("error", code.getCode(), code.getMessage(), null, null);
+    }
+
+    public static <T> ApiResponse<T> error(Code code, Object error) {
+        return of("error", code.getCode(), code.getMessage(), null, error);
+    }
+
+    public static <T> ApiResponse<T> error(int code, String message) {
+        return of("error", code, message, null, null);
+    }
+
+    public static <T> ApiResponse<T> error(int code, String message, Object error) {
+        return of("error", code, message, null, error);
+    }
+
+    private static <T> ApiResponse<T> of(String status, int code, String message, T data, Object error) {
         return new ApiResponse<>(
-                "success",
-                200,
+                status,
+                code,
                 message,
                 data,
-                null,
-                getCurrentTraceId(),
+                error,
+                MDC.get("traceId"),
                 System.currentTimeMillis()
         );
-    }
-
-    /**
-     * 成功响应 - 无数据
-     */
-    public static ApiResponse<Void> success() {
-        return new ApiResponse<>(
-                "success",
-                200,
-                "操作成功",
-                null,
-                null,
-                getCurrentTraceId(),
-                System.currentTimeMillis()
-        );
-    }
-
-    /**
-     * 成功响应 - 无数据，自定义消息
-     */
-    public static ApiResponse<Void> success(String message) {
-        return new ApiResponse<>(
-                "success",
-                200,
-                message,
-                null,
-                null,
-                getCurrentTraceId(),
-                System.currentTimeMillis()
-        );
-    }
-
-    /**
-     * 错误响应
-     */
-    public static <T> ApiResponse<T> error(Integer code, String message) {
-        return new ApiResponse<>(
-                "error",
-                code,
-                message,
-                null,
-                null,
-                getCurrentTraceId(),
-                System.currentTimeMillis()
-        );
-    }
-
-    /**
-     * 错误响应 - 带详情
-     */
-    public static <T> ApiResponse<T> error(Integer code, String message, List<ErrorDetail> errors) {
-        return new ApiResponse<>(
-                "error",
-                code,
-                message,
-                null,
-                errors,
-                getCurrentTraceId(),
-                System.currentTimeMillis()
-        );
-    }
-
-    /**
-     * 获取当前追踪ID
-     */
-    private static String getCurrentTraceId() {
-        String traceId = MDC.get("traceId");
-        return traceId != null ? traceId : generateTraceId();
-    }
-
-    /**
-     * 生成追踪ID
-     */
-    private static String generateTraceId() {
-        return java.util.UUID.randomUUID().toString().replace("-", "");
     }
 }
