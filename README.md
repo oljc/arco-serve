@@ -47,49 +47,59 @@
 
 ```
 arco-serve/
+├── 📁 config                               # 项目相关配置
+├── 📁 gradle                               # Gradle 配置
 ├── 📁 src/main/java/io/github/oljc/arcoserve/
-│   ├── 📄 Application.java                   # 🚀 主应用类
-│   ├── 📁 modules/                            # 🎯 业务模块
-│   │   ├── 📁 user/                          # 👤 用户模块
-│   │   │   ├── 📄 User.java                  # 实体类
-│   │   │   ├── 📄 UserController.java        # REST 控制器
-│   │   │   ├── 📄 UserService.java           # 业务服务
-│   │   │   ├── 📄 UserRepository.java        # 数据仓储
-│   │   │   └── 📁 dto/                       # 数据传输对象
-│   │   │       ├── 📄 CreateUserRequest.java
-│   │   │       └── 📄 UserResponse.java
-│   │   ├── 📁 ...                   
-│   ├── 📁 shared/                            # 🔗 共享组件
-│   │   ├── 📁 config/                        # 全局配置
-│   │   │   └── 📄 SecurityConfig.java
-│   │   ├── 📁 exception/                     # 异常处理
-│   │   │   ├── 📄 BusinessException.java
-│   │   │   ├── 📄 ErrorResponse.java
-│   │   │   └── 📄 GlobalExceptionHandler.java
-│   │   └── 📁 util/                          # 工具类
-│   │       └── 📄 ValidationUtils.java
-│   └── 📁 infrastructure/                    # 🏗️ 基础设施
-│       ├── 📁 database/                      # 数据库相关
-│       └── 📁 external/                      # 外部服务
+│   ├── 📄 Application.java                   # 主应用类
+│   ├── 📁 modules/                            # 业务
+│   │   └── 📁 user/                          # 用户模块
+│   │       └── 📄 UserController.java
+│   │   └── 📁 chat/                          # 聊天模块
+│   │       └── 📄 ChatController.java
+│   └── 📁 shared/                            # 共享组件
+│       ├── 📁 annotation/                    # 自定义注解
+│       │   └── 📄 Signature.java
+│       ├── 📁 config/                        # 全局配置
+│       │   └── 📄 WebConfig.java
+│       ├── 📁 exception/                     # 异常处理
+│       │   ├── 📄 BusinessException.java
+│       │   ├── 📄 Code.java
+│       │   └── 📄 GlobalExceptionHandler.java
+│       ├── 📁 response/                      # 响应处理
+│       │   ├── 📄 ApiResponse.java
+│       │   ├── 📄 PageData.java
+│       │   └── 📄 ResponseAdvice.java
+│       ├── 📁 util/                          # 工具类
+│       └── 📁 web/                           # Web 组件（拦截器/过滤器/切面等）
 ├── 📁 src/main/resources/
-│   ├── 📄 application.yml                    # 主配置文件
 │   ├── 📄 application-dev.yml                # 开发环境配置
 │   ├── 📄 application-prod.yml               # 生产环境配置
 │   ├── 📁 config/                           # 配置文件目录
-│   ├── 📁 static/                           # 静态资源
-│   └── 📁 templates/                        # 模板文件
+│   ├── 📁 db/                               # 数据库脚本
+│   │   ├── 📄 build.sql                     # 构建脚本
+│   │   ├── 📄 data.sql                      # 数据脚本
+│   │   ├── 📁 core/                         # 核心脚本
+│   │   │   ├── 📄 base.sql                  # 基础脚本
+│   │   │   └── 📄 enums.sql                 # 枚举脚本
+│   │   └── 📁 schema/                       # 数据表结构
+│   │       ├── 📄 auth.sql                  # 认证相关表
+│   │       ├── 📄 logs.sql                  # 日志表
+│   │       └── 📄 user.sql                  # 用户表
+│   ├── 📁 static                            # 静态资源
+│   └── 📁 templates                         # 模板文件
 ├── 📁 src/test/java/io/github/oljc/arcoserve/
-│   ├── 📁 modules/user/
-│   │   └── 📄 UserServiceTest.java           # 单元测试
-│   ├── 📁 integration/
-│   │   └── 📄 UserIntegrationTest.java       # 集成测试
-│   ├── 📁 architecture/
-│   │   └── 📄 ArchitectureTest.java          # 架构测试
+│   ├── 📄 ApplicationTests.java             # 应用测试
+│   ├── 📁 modules/                          # 模块测试
+│   │   ├── 📁 user
+│   │   └── 📁 chat
 │   └── 📁 shared/                           # 共享组件测试
 ├── 📄 build.gradle                          # Gradle 构建配置
-├── 📄 README.md                             # 项目文档
-└── 📄 .gitignore                            # Git 忽略配置
+├── 📄 settings.gradle                       # Gradle 设置
+├── 📄 gradlew                               # Gradle Wrapper 脚本
+└── ... 
 ```
+
+更多细节参考 [开发文档](https://github.com/oljc/arco-serve.wiki.git)
 
 ## 贡献
 
@@ -103,9 +113,6 @@ arco-serve/
 <a href="https://github.com/oljc/arco-admin/graphs/contributors"><img src="https://contrib.rocks/image?repo=oljc/arco-admin" />
 </a><br/>
 
-## 💡 技术支持
-
-#### 联系方式
 - 📧 **邮箱**: ljc.byte@gmail.com
 - 🐛 **问题反馈**: [GitHub Issues](https://github.com/oljc/arco-serve/issues)
 

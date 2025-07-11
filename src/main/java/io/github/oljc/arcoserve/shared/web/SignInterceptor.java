@@ -17,6 +17,7 @@ public class SignInterceptor implements HandlerInterceptor {
 
     private static final String HEADER_DATE = "X-Date";
     private static final String HEADER_FP = "X-Fingerprint";
+    private static final String SECRET_KEY = "LJCVd05qVXdObU0yT0RaaU5HWTJORGs0TURNek5HTTJZakV6WTJNNE9XVQ==";
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -43,7 +44,7 @@ public class SignInterceptor implements HandlerInterceptor {
         }
 
         try {
-            SignUtils.verify(request);
+            SignUtils.verify(request, SECRET_KEY);
         } catch (Exception e) {
             throw new BusinessException(Code.SIGN_ERROR);
         }
