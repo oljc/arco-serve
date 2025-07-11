@@ -1,68 +1,78 @@
 package io.github.oljc.arcoserve.shared.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.TreeMap;
 
 public final class JsonUtils {
-    private static final Logger log = LoggerFactory.getLogger(JsonUtils.class);
 
     private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     private JsonUtils() {}
 
-    public static String toJson(Object obj) {
-        if (obj == null) {
-            return null;
-        }
+    public static String toJson(Object o) {
         try {
-            return MAPPER.writeValueAsString(obj);
+            return MAPPER.writeValueAsString(o);
         } catch (JsonProcessingException e) {
-            log.error("JSON序列化失败: {}", e.getMessage());
-            return null;
+            throw new RuntimeException("JSON序列化失败", e);
         }
     }
 
     public static <T> T fromJson(String json, Class<T> clazz) {
-        if (json == null || json.trim().isEmpty() || clazz == null) {
-            return null;
-        }
         try {
             return MAPPER.readValue(json, clazz);
         } catch (JsonProcessingException e) {
-            log.error("JSON反序列化失败: {}", e.getMessage());
-            return null;
+            throw new RuntimeException("JSON反序列化失败", e);
         }
     }
 
-    public static String toPrettyJson(Object obj) {
-        if (obj == null) {
-            return null;
-        }
+    public static <T> T fromJson(String json, TypeReference<T> typeRef) {
         try {
-            return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+            return MAPPER.readValue(json, typeRef);
         } catch (JsonProcessingException e) {
-            log.error("JSON美化序列化失败: {}", e.getMessage());
-            return null;
+            throw new RuntimeException("JSON泛型反序列化失败", e);
         }
     }
 
     public static boolean isValidJson(String json) {
-        if (json == null || json.trim().isEmpty()) {
+        try {
+            return json != null && !json.isBlank() && MAPPER.readTree(json) != null;
+        } catch (Exception e) {
             return false;
         }
+    }
+
+    public static String toSortedJson(Object o) {
         try {
-            MAPPER.readTree(json);
-            return true;
+            JsonNode root = MAPPER.valueToTree(o);
+            JsonNode sorted = sortNode(root);
+            return MAPPER.writeValueAsString(sorted);
         } catch (JsonProcessingException e) {
-            return false;
+            throw new RuntimeException("JSON排序序列化失败", e);
+        }
+    }
+
+    private static JsonNode sortNode(JsonNode node) {
+        if (node.isObject()) {
+            var sortedMap = new TreeMap<String, JsonNode>();
+            node.fieldNames().forEachRemaining(f -> sortedMap.put(f, sortNode(node.get(f))));
+            ObjectNode obj = MAPPER.createObjectNode();
+            sortedMap.forEach(obj::set);
+            return obj;
+        } else if (node.isArray()) {
+            ArrayNode array = MAPPER.createArrayNode();
+            node.forEach(n -> array.add(sortNode(n)));
+            return array;
+        } else {
+            return node;
         }
     }
 }
