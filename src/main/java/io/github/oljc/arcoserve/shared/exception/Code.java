@@ -22,14 +22,27 @@ public enum Code {
     SIGN_EXPIRED(3004, "签名已过期"),
     SIGN_ERROR(3005, "签名验证失败"),
 
-    DATA_NOT_FOUND(4001, "数据不存在"),
-    DATA_ALREADY_EXISTS(4002, "数据已存在"),
-    DATA_INTEGRITY_VIOLATION(4003, "数据完整性约束违反"),
-
     FILE_NOT_FOUND(5001, "文件不存在"),
     FILE_UPLOAD_FAILED(5002, "文件上传失败"),
     FILE_SIZE_EXCEEDED(5003, "文件大小超出限制"),
-    FILE_TYPE_NOT_SUPPORTED(5004, "文件类型不支持");
+    FILE_TYPE_NOT_SUPPORTED(5004, "文件类型不支持"),
+
+    DATA_NOT_FOUND(10001, "数据不存在"),
+    DATA_EXISTS(10002, "数据已存在"),
+    DATA_VIOLATION(10003, "数据完整性约束违反"),
+
+    // 用户相关错误码
+    USER_NOT_FOUND(11001, "用户不存在"),
+    USER_NAME_EXISTS(11002, "用户名已存在"),
+    USER_EMAIL_EXISTS(11003, "邮箱已存在"),
+    USER_PASSWORD_INVALID(11004, "密码错误"),
+    USER_LOCKED(11005, "账户已被锁定"),
+    USER_DISABLED(11006, "账户已被禁用"),
+    USER_NOT_VERIFIED(11007, "邮箱未验证"),
+    USER_NOT_ALLOWED(11008, "用户操作不被允许"),
+
+    // 参数验证错误码
+    PARAM_INVALID(12001, "参数无效");
 
     private final int code;
     private final String message;
