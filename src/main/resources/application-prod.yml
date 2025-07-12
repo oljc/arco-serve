@@ -30,13 +30,6 @@ spring:
       password: ${ADMIN_PASSWORD:admin123}
       roles: ADMIN
 
-logging:
-  level:
-    io.github.oljc.arcoserve: INFO
-    org.springframework.security: WARN
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
 management:
   endpoints:
     web:

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false">
+
+    <springProfile name="dev">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>
+                    %d{HH:mm:ss.SSS} [%X{traceId:-}] %highlight(%-5level) %cyan(%logger{20}) - %msg%n
+                </pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.springframework.boot.autoconfigure" level="ERROR"/>
+
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd HH:mm:ss.SSS} [%X{traceId:-}] %-5level %logger{20} - %msg%n
+                </pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.springframework.boot.autoconfigure" level="ERROR"/>
+
+        <root level="WARN">
+            <appender-ref ref="CONSOLE" />
+        </root>
+    </springProfile>
+</configuration>
