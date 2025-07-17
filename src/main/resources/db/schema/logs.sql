@@ -4,7 +4,7 @@
 
 -- 用户登录日志表
 CREATE TABLE user_login_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     ip_address INET NOT NULL,
     user_agent TEXT,
@@ -16,7 +16,8 @@ CREATE TABLE user_login_logs (
 CREATE INDEX idx_login_logs_user_time ON user_login_logs(user_id, created_at DESC);
 CREATE INDEX idx_login_logs_ip ON user_login_logs(ip_address);
 CREATE INDEX idx_login_logs_success_time ON user_login_logs(success, created_at DESC);
-CREATE INDEX idx_login_logs_recent ON user_login_logs(created_at DESC) WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '7 days';
+-- 移除动态时间检查的索引，改为普通的时间索引
+CREATE INDEX idx_login_logs_recent ON user_login_logs(created_at DESC);
 
 -- 高频写入表优化
 ALTER TABLE user_login_logs SET (

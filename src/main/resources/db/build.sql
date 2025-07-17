@@ -3,11 +3,11 @@
 -- ============================================
 
 \i core/enums.sql
+\i core/base.sql
 \i schema/user.sql
 \i schema/auth.sql
 \i schema/logs.sql
-\i core/base.sql
-\i data.sql
+\i core/data.sql
 
 DO $$
 BEGIN

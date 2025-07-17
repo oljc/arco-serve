@@ -4,7 +4,7 @@
 
 -- 用户主表
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id BIGSERIAL UNIQUE NOT NULL,
 
     username VARCHAR(32) NOT NULL UNIQUE,
@@ -65,7 +65,7 @@ CREATE TABLE user_preferences (
 
 -- OAuth账户表
 CREATE TABLE user_oauth_accounts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     provider VARCHAR(50) NOT NULL,
     provider_user_id VARCHAR(255) NOT NULL,
