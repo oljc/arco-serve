@@ -59,8 +59,6 @@ arco-serve/
 │   └── 📁 shared/                            # 共享组件
 │       ├── 📁 annotation/                    # 自定义注解
 │       │   └── 📄 Signature.java
-│       ├── 📁 config/                        # 全局配置
-│       │   └── 📄 WebConfig.java
 │       ├── 📁 exception/                     # 异常处理
 │       │   ├── 📄 BusinessException.java
 │       │   ├── 📄 Code.java
