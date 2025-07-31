@@ -63,6 +63,9 @@ public class User {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
     /**
      * 用户状态枚举
      */
@@ -82,6 +85,7 @@ public class User {
     public enum UserType {
         SUPER_ADMIN,  // 超级管理员
         ADMIN,        // 管理员
+        MODERATOR,    // 版主
         TEST,         // 测试账号
         OPERATOR,     // 运营审核人员
         API,          // API系统集成
@@ -116,5 +120,19 @@ public class User {
      */
     public boolean isEmailVerified() {
         return Boolean.TRUE.equals(emailVerified);
+    }
+
+    /**
+     * 判断用户是否启用（可用于登录）
+     */
+    public boolean isEnabled() {
+        return status == UserStatus.ACTIVE || status == UserStatus.PENDING;
+    }
+
+    /**
+     * 获取最后登录时间
+     */
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAt;
     }
 }

@@ -4,8 +4,6 @@ import java.lang.annotation.*;
 
 /**
  * 签名验证注解
- *
- * 支持作用于类和方法，方法上的注解优先级高于类上的
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
