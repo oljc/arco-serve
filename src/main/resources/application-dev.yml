@@ -37,7 +37,7 @@ spring:
   cache:
     type: redis
     redis:
-      time-to-live: 600000  # 10分钟
+      time-to-live: 10m  # 10分钟
       cache-null-values: false
 
   security:

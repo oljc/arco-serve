@@ -23,8 +23,8 @@ import java.time.Duration;
 @ConditionalOnProperty(name = "spring.data.redis.host")
 public class RedisConfig {
 
-    @Value("${spring.cache.redis.time-to-live:600000}")
-    private long defaultTtl;
+    @Value("${spring.cache.redis.time-to-live:10m}")
+    private Duration defaultTtl;
 
     /**
      * Spring Cache 缓存管理
@@ -32,7 +32,7 @@ public class RedisConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofMinutes(defaultTtl))
+            .entryTtl(defaultTtl)
             .serializeKeysWith(RedisSerializationContext.SerializationPair
                 .fromSerializer(new StringRedisSerializer()))
             // Value 序列化：JSON（自动处理复杂对象）
