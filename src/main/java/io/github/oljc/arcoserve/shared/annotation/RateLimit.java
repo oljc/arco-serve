@@ -20,7 +20,7 @@ public @interface RateLimit {
     /**
      * 时间窗口大小，单位：秒，默认60秒
      */
-    long window() default 60;
+    int window() default 60;
 
     /**
      * 开启 IP 限流

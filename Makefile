@@ -1,73 +1,69 @@
-.PHONY: help dev up down init app prod prod-up prod-down clean build rebuild logs logs-dev logs-prod ps ps-dev ps-prod check backup install check-docker urls
-.DEFAULT_GOAL := help
+# Arco Serve 开发环境 Makefile
 
-dev: check-docker up app ## 启动！
+.PHONY: help start stop restart logs clean build test clean_build
 
-up: ## 基础开发环境
-	@echo "启动开发基础设施..."
-	@docker-compose -f docker-compose.yml up -d
+# 默认目标
+help:
+	@echo "Arco Serve 开发环境命令"
+	@echo ""
+	@echo "开发环境:"
+	@echo "  start    启动开发环境 (PostgreSQL + Redis)"
+	@echo "  stop     停止开发环境"
+	@echo "  restart  重启开发环境"
+	@echo "  logs     查看服务日志"
+	@echo "  clean    清理开发环境数据"
+	@echo ""
 
-down: ## 停止开发基础设施
-	@docker-compose -f docker-compose.yml down
+	@echo "应用构建:"
+	@echo "  build        构建应用"
+	@echo "  test         运行测试"
+	@echo "  run          运行应用 (dev profile)"
+	@echo "  clean_build  清理构建文件"
 
-init: ## 初始化数据库结构（可选）
-	@docker exec -it arco-serve-postgres-dev psql -U devadmin -d bitdb -f /docker-entrypoint-initdb.d/init.sql
+# 开发环境管理
+start:
+	@echo "🚀 启动开发环境..."
+	docker-compose up -d postgres redis
+	@echo "✅ 开发环境已启动"
 
-app: ## 启动 Spring Boot 本地应用（请在IDE或终端运行）
-	@echo "🎯 环境已启动，请使用 IDE 启动 Application.java 或执行：./gradlew bootRun"
+stop:
+	@echo "🛑 停止开发环境..."
+	docker-compose stop postgres redis
+	@echo "✅ 开发环境已停止"
 
+restart: stop start
 
-prod: prod-up ## 启动生产环境
+logs:
+	@echo "📋 查看服务日志 (Ctrl+C 退出)..."
+	docker-compose logs -f postgres redis
 
-prod-up: ## 启动生产服务
-	@docker-compose -f docker-compose.prod.yml up -d
+clean:
+	@echo "🧹 清理开发环境数据..."
+	docker-compose down -v
 
-prod-down: ## 停止生产服务
-	@docker-compose -f docker-compose.prod.yml down
+# 应用构建和运行
+build:
+	@echo "🔨 构建应用..."
+	./gradlew build
 
+test:
+	@echo "🧪 运行测试..."
+	./gradlew test
 
-build: ## 构建应用镜像
-	@docker-compose build app
+run:
+	@echo "🚀 运行应用 (dev profile)..."
+	./gradlew bootRun --args='--spring.profiles.active=dev'
 
-rebuild: ## 重新构建（无缓存）
-	@docker-compose build --no-cache app
+clean_build:
+	@echo "🧹 清理构建文件..."
+	./gradlew clean
 
-clean: ## 清理所有 Docker 容器/网络/镜像
-	@docker-compose down -v --rmi local --remove-orphans
-	@docker-compose -f docker-compose.dev.yml down -v --rmi local --remove-orphans
-	@docker system prune -f
-
-logs: ## 查看开发应用日志
-	@docker-compose logs -f app
-
-logs-dev: ## 查看开发基础设施日志
-	@docker-compose -f docker-compose.dev.yml logs -f
-
-logs-prod: ## 查看生产应用日志
-	@docker-compose -f docker-compose.prod.yml logs -f app
-
-ps: ## 查看开发应用状态
-	@docker-compose ps
-
-ps-dev: ## 查看开发基础设施状态
-	@docker-compose -f docker-compose.dev.yml ps
-
-ps-prod: ## 查看生产应用状态
-	@docker-compose -f docker-compose.prod.yml ps
-
-check: ## 代码检查
-	@./gradlew codeQuality
-
-install: ## 安装依赖
-	@./gradlew build --refresh-dependencies
-
-check-docker: ## 检查 Docker 是否运行
-	@if ! docker info > /dev/null 2>&1; then echo "❌ Docker 未运行"; exit 1; fi
-
-urls: ## 显示本地服务地址
-	@echo "🌍 应用地址:     http://localhost:9960"
-	@echo "📦 PostgreSQL:   jdbc:postgresql://localhost:5432/bitdb"
-	@echo "📦 Redis:        redis://localhost:6379"
-
-help: ## 显示帮助信息
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+# 完整的开发环境设置
+setup: start
+	@echo "⏳ 等待服务启动..."
+	sleep 10
+	@echo "🎉 开发环境设置完成！"
+	@echo ""
+	@echo "接下来:"
+	@echo "  1. 运行应用: make run"
+	@echo "  2. 或在 IDEA 中运行 (使用 dev profile)"

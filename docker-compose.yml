@@ -1,46 +1,48 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: arco-serve-postgres
+    container_name: postgres
     environment:
-      - POSTGRES_DB=bitdb
-      - POSTGRES_USER=devadmin
-      - POSTGRES_PASSWORD=devpass
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+      POSTGRES_DB: bitdb
+      POSTGRES_USER: oljc
+      POSTGRES_PASSWORD: ljc.byte
     ports:
       - "5432:5432"
+    working_dir: /docker-entrypoint-initdb.d
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./src/main/resources/db:/docker-entrypoint-initdb.d
-    restart: unless-stopped
+    networks:
+      - app
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U devadmin -d bitdb"]
+      test: ["CMD-SHELL", "pg_isready -U oljc -d bitdb"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - arco-network
 
+  # Redis 缓存
   redis:
     image: redis:7-alpine
-    container_name: arco-serve-redis
+    container_name: redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    restart: unless-stopped
+    networks:
+      - app
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - arco-network
+    command: redis-server --appendonly yes
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
 
 networks:
-  arco-network:
+  app:
     driver: bridge
