@@ -1,5 +1,3 @@
-# Arco Serve 开发环境 Makefile
-
 .PHONY: help start stop restart logs clean build test clean_build
 
 # 默认目标

@@ -43,8 +43,17 @@ public final class SignUtils {
      * @param secretKey 签名密钥（Base64或明文）
      * @throws SecurityException 验签失败异常
      */
-    public static void verify(HttpServletRequest request, String secretKey) {
+    public static void verify(HttpServletRequest request, String secretKey, long maxAge) {
         try {
+
+            if (request.getHeader("x-fingerprint") == null) {
+                throw new SecurityException("签名错误");
+            }
+
+            if (isExpired(request.getHeader("x-date"), maxAge)) {
+                throw new SecurityException("签名已过期");
+            }
+
             var sigData = extractSignatureData(request);
             var headers = getHeadersMap(request);
             var headerData = buildHeaderData(headers);

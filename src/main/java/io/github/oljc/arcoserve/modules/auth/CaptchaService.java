@@ -5,12 +5,11 @@ import cn.hutool.captcha.generator.MathGenerator;
 import cn.hutool.captcha.generator.RandomGenerator;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import io.github.oljc.arcoserve.shared.util.RedisUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -20,11 +19,18 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class CaptchaService {
 
-    private static final String CAPTCHA_PREFIX = "captcha:";
+    private static final String PREFIX = "captcha:";
     private static final String NUMBERS = "0123456789";
-    private static final CaptchaType[] RANDOM_TYPES = {CaptchaType.LINE, CaptchaType.CIRCLE, CaptchaType.SHEAR};
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private static final CaptchaType[] ALL_TYPES = {
+        CaptchaType.LINE,
+        CaptchaType.CIRCLE,
+        CaptchaType.SHEAR,
+        CaptchaType.MATH,
+        CaptchaType.NUMBER
+    };
+
+    private final RedisUtils redisUtils;
 
     @Value("${app.captcha.width:200}")
     private int width;
@@ -38,14 +44,14 @@ public class CaptchaService {
     @Value("${app.captcha.interfere-count:20}")
     private int interfereCount;
 
-    @Value("${app.captcha.expiration-minutes:5}")
-    private int expirationMinutes;
+    @Value("${app.captcha.expiration-minutes:50}")
+    private int expire;
 
     public enum CaptchaType {
-        LINE, CIRCLE, SHEAR, MATH, RANDOM, NUMBER
+        LINE, CIRCLE, SHEAR, MATH, NUMBER
     }
 
-    public record CaptchaResponse(String id, String captcha, CaptchaType type, long ttlSeconds) {}
+    public record Response(String id, String captcha, long ttl) {}
 
     public record Result(boolean success, String message) {
         public static Result ok() {
@@ -58,17 +64,24 @@ public class CaptchaService {
     }
 
     /**
-     * 生成验证码
+     * 随机生成验证码
      */
-    public CaptchaResponse create(CaptchaType type) {
+    public Response random() {
+        CaptchaType randomType = ALL_TYPES[ThreadLocalRandom.current().nextInt(ALL_TYPES.length)];
+        return create(randomType);
+    }
+
+    /**
+     * 生成指定类型验证码
+     */
+    public Response create(CaptchaType type) {
         AbstractCaptcha captcha = createCaptcha(type);
         String captchaId = IdUtil.fastSimpleUUID();
         String captchaCode = captcha.getCode();
+        String key = PREFIX + captchaId;
 
-        // 异步存储到Redis
-        String redisKey = CAPTCHA_PREFIX + captchaId;
-        redisTemplate.opsForValue().set(redisKey, captchaCode, Duration.ofMinutes(expirationMinutes));
-        return new CaptchaResponse(captchaId, captcha.getImageBase64Data(), type, expirationMinutes * 60L);
+        redisUtils.set(key, captchaCode, expire);
+        return new Response(captchaId, captcha.getImageBase64Data(), expire);
     }
 
     /**
@@ -80,12 +93,14 @@ public class CaptchaService {
         }
 
         try {
-            String redisKey = CAPTCHA_PREFIX + captchaId;
-            String storedCode = redisTemplate.opsForValue().getAndDelete(redisKey);
+            String key = PREFIX + captchaId;
+            String storedCode = redisUtils.get(key);
 
             if (storedCode == null) {
                 return Result.fail("验证码不存在或已过期");
             }
+
+            redisUtils.delete(key);
 
             boolean isValid = storedCode.equalsIgnoreCase(captchaCode.trim());
             return isValid ? Result.ok() : Result.fail("验证码错误");
@@ -105,7 +120,6 @@ public class CaptchaService {
             case SHEAR -> CaptchaUtil.createShearCaptcha(width, height, codeCount, 4);
             case MATH -> createMathCaptcha();
             case NUMBER -> createNumberCaptcha();
-            case RANDOM -> createCaptcha(RANDOM_TYPES[ThreadLocalRandom.current().nextInt(RANDOM_TYPES.length)]);
         };
     }
 

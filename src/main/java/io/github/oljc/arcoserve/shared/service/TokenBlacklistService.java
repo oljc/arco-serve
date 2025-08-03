@@ -1,43 +1,131 @@
 package io.github.oljc.arcoserve.shared.service;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
+import io.github.oljc.arcoserve.shared.util.JwtUtils;
+import io.github.oljc.arcoserve.shared.util.RedisUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
+import java.util.Collection;
 
 /**
  * Token黑名单服务
- * 用于管理已撤销但尚未过期的JWT令牌
  */
 @Service
+@RequiredArgsConstructor
 public class TokenBlacklistService {
 
-    private static final String BLACKLIST_PREFIX = "token:blacklist:";
-    
-    private final StringRedisTemplate redisTemplate;
+    private final RedisUtils redisUtils;
+    private final JwtUtils jwtUtils;
 
-    public TokenBlacklistService(StringRedisTemplate redisTemplate) {
-        this.redisTemplate = redisTemplate;
+    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
+    private static final String USER_TOKENS_PREFIX = "jwt:user:";
+
+    /**
+     * 将token加入黑名单
+     */
+    public void addToBlacklist(String token) {
+        try {
+            if (!jwtUtils.isValid(token)) return;
+
+            var tokenId = jwtUtils.getTokenId(token);
+            var remainSeconds = jwtUtils.getRemainSeconds(token);
+
+            if (remainSeconds > 0) {
+                redisUtils.set(BLACKLIST_PREFIX + tokenId, "1", remainSeconds);
+            }
+        } catch (Exception ignored) {}
     }
 
     /**
-     * 将令牌加入黑名单
-     *
-     * @param jti 令牌ID
-     * @param ttl 剩余有效期
+     * 检查token是否在黑名单中
      */
-    public void blacklistToken(String jti, Duration ttl) {
-        redisTemplate.opsForValue().set(BLACKLIST_PREFIX + jti, "1", ttl);
+    public boolean isBlacklisted(String token) {
+        try {
+            var tokenId = jwtUtils.getTokenId(token);
+            return redisUtils.exists(BLACKLIST_PREFIX + tokenId);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**
-     * 检查令牌是否在黑名单中
-     *
-     * @param jti 令牌ID
-     * @return 如果令牌在黑名单中返回true
+     * 将用户的所有token加入黑名单 (强制登出)
      */
-    public boolean isBlacklisted(String jti) {
-        Boolean exists = redisTemplate.hasKey(BLACKLIST_PREFIX + jti);
-        return exists != null && exists;
+    public void blacklistUserTokens(Long userId) {
+        var userKey = USER_TOKENS_PREFIX + userId;
+        var tokenIds = redisUtils.smembers(userKey);
+
+        if (!tokenIds.isEmpty()) {
+            tokenIds.forEach(tokenId ->
+                redisUtils.set(BLACKLIST_PREFIX + tokenId, "1", 7 * 24 * 3600)
+            );
+            redisUtils.delete(userKey);
+        }
+    }
+
+    /**
+     * 记录用户的活跃token
+     */
+    public void trackUserToken(String token) {
+        try {
+            var userId = jwtUtils.getUserId(token);
+            var tokenId = jwtUtils.getTokenId(token);
+            var remainSeconds = jwtUtils.getRemainSeconds(token);
+
+            if (userId != null && remainSeconds > 0) {
+                var userKey = USER_TOKENS_PREFIX + userId;
+                redisUtils.sadd(userKey, tokenId);
+                redisUtils.expire(userKey, Math.max(remainSeconds, 7 * 24 * 3600));
+            }
+        } catch (Exception ignored) {}
+    }
+
+    /**
+     * 移除用户token记录
+     */
+    public void untrackUserToken(String token) {
+        try {
+            var userId = jwtUtils.getUserId(token);
+            var tokenId = jwtUtils.getTokenId(token);
+
+            if (userId != null) {
+                redisUtils.srem(USER_TOKENS_PREFIX + userId, tokenId);
+            }
+        } catch (Exception ignored) {}
+    }
+
+    /**
+     * 批量添加到黑名单
+     */
+    public void addToBlacklist(Collection<String> tokens) {
+        tokens.forEach(this::addToBlacklist);
+    }
+
+    /**
+     * 检查token是否有效
+     */
+    public boolean isTokenValid(String token) {
+        return jwtUtils.isValid(token) && !isBlacklisted(token);
+    }
+
+    /**
+     * 获取用户当前活跃的token数量
+     */
+    public long getUserActiveTokenCount(Long userId) {
+        return redisUtils.scard(USER_TOKENS_PREFIX + userId);
+    }
+
+    /**
+     * 清理过期的用户token记录
+     */
+    public void cleanupExpiredTokens(Long userId) {
+        var userKey = USER_TOKENS_PREFIX + userId;
+        var tokenIds = redisUtils.smembers(userKey);
+
+        tokenIds.forEach(tokenId -> {
+            if (!redisUtils.exists(BLACKLIST_PREFIX + tokenId)) {
+                redisUtils.srem(userKey, tokenId);
+            }
+        });
     }
 }

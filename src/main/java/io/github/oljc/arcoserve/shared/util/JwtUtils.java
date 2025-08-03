@@ -1,284 +1,208 @@
 package io.github.oljc.arcoserve.shared.util;
 
-import io.github.oljc.arcoserve.shared.service.TokenBlacklistService;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.Jwts;
-import lombok.RequiredArgsConstructor;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
-import jakarta.annotation.PostConstruct;
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 /**
- * JWT工具
+ * JWT 工具类 - 双token方案
  */
 @Component
-@RequiredArgsConstructor
 public class JwtUtils {
 
-    private static final String TOKEN_VERSION = "2.0";
-    private static final String ACCESS_TYPE = "ACCESS";
-    private static final String REFRESH_TYPE = "REFRESH";
-    private static final String FINGERPRINT_HEADER = "X-Fingerprint";
-    private static final String UNKNOWN_IP = "unknown";
+    private final SecretKey key;
+    private final String issuer;
+    private final String audience;
+    private final Duration accessExpiry;
+    private final Duration refreshExpiry;
 
-    private static final String[] IP_HEADERS = {
-        "X-Forwarded-For", "X-Real-IP", "X-Originating-IP",
-        "CF-Connecting-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP"
-    };
-
-    private static final Pattern IPv4_PATTERN = Pattern.compile("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$");
-    private static final Pattern IPv6_PATTERN = Pattern.compile("^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$");
-
-    @Value("${app.jwt.secret}")
-    private String secret;
-    @Value("${app.jwt.issuer}")
-    private String issuer;
-    @Value("${app.jwt.audience}")
-    private String audience;
-    @Value("${app.jwt.access-token-expiration:PT15M}")
-    private Duration accessExpiration;
-    @Value("${app.jwt.refresh-token-expiration:P7D}")
-    private Duration refreshExpiration;
-
-    private final TokenBlacklistService blacklistService;
-
-    private SecretKey signingKey;
-    private JwtParser jwtParser;
-
-    @PostConstruct
-    private void init() {
-        validateAndInitKey();
-        initParser();
+    public JwtUtils(
+            @Value("${app.jwt.secret}") String secret,
+            @Value("${app.jwt.issuer}") String issuer,
+            @Value("${app.jwt.audience}") String audience,
+            @Value("${app.jwt.access-token-expiration}") Duration accessExpiry,
+            @Value("${app.jwt.refresh-token-expiration}") Duration refreshExpiry
+    ) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        this.issuer = issuer;
+        this.audience = audience;
+        this.accessExpiry = accessExpiry;
+        this.refreshExpiry = refreshExpiry;
     }
-
-    private void validateAndInitKey() {
-        if (secret.length() < 32) {
-            throw new IllegalStateException("JWT密钥长度必须至少32字节");
-        }
-        signingKey = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
-    }
-
-    private void initParser() {
-        jwtParser = Jwts.parser()
-            .verifyWith(signingKey)
-            .requireIssuer(issuer)
-            .requireAudience(audience)
-            .build();
-    }
-
-    // ==================== Token生成 ====================
 
     /**
      * 生成访问令牌
      */
-    public String createAccessToken(UUID userId, String ip, String fingerprint) {
-        validateSecurity(ip, fingerprint);
-        return buildToken(userId, ip, fingerprint, ACCESS_TYPE, accessExpiration);
+    public String createAccessToken(Long userId, String username, String userType) {
+        return createToken(userId, username, userType, accessExpiry, "access");
     }
 
     /**
      * 生成刷新令牌
      */
-    public String createRefreshToken(UUID userId, String ip, String fingerprint) {
-        validateSecurity(ip, fingerprint);
-        return buildToken(userId, ip, fingerprint, REFRESH_TYPE, refreshExpiration);
-    }
-
-    private String buildToken(UUID userId, String ip, String fingerprint, String type, Duration expiration) {
-        Instant now = Instant.now();
-        return Jwts.builder()
-            .issuer(issuer)
-            .subject(userId.toString())
-            .audience().add(audience).and()
-            .issuedAt(Date.from(now))
-            .expiration(Date.from(now.plus(expiration)))
-            .id(UUID.randomUUID().toString())
-            .claim("type", type)
-            .claim("ip", ip)
-            .claim("fingerprint", fingerprint)
-            .claim("version", TOKEN_VERSION)
-            .signWith(signingKey)
-            .compact();
-    }
-
-    // ==================== Token验证 ====================
-
-    /**
-     * 完整验证（包含安全检查）
-     */
-    public boolean validate(String token, String currentIp, String currentFingerprint) {
-        return parseAndValidate(token, claims ->
-            validateSecurity(claims, currentIp, currentFingerprint));
+    public String createRefreshToken(Long userId, String username) {
+        return createToken(userId, username, null, refreshExpiry, "refresh");
     }
 
     /**
-     * 基础验证（仅检查签名和有效期）
+     * 生成令牌
      */
-    public boolean validateBasic(String token) {
-        return parseAndValidate(token, claims -> true);
+    private String createToken(Long userId, String username, String userType,
+                              Duration expiry, String type) {
+        var now = Instant.now();
+        var exp = now.plus(expiry);
+
+        var builder = Jwts.builder()
+                .subject(username)
+                .issuer(issuer)
+                .audience().add(audience).and()
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(exp))
+                .id(UUID.randomUUID().toString())
+                .claim("uid", userId)
+                .claim("type", type);
+
+        if (userType != null) {
+            builder.claim("role", userType);
+        }
+
+        return builder.signWith(key).compact();
     }
 
-    private boolean parseAndValidate(String token, SecurityValidator validator) {
-        if (!StringUtils.hasText(token)) return false;
-
+    /**
+     * 验证令牌
+     */
+    public boolean isValid(String token) {
         try {
-            Claims claims = jwtParser.parseSignedClaims(token).getPayload();
-
-            return TOKEN_VERSION.equals(claims.get("version")) &&
-                   !isBlacklisted(claims.getId()) &&
-                   validator.validate(claims);
-
+            parse(token);
+            return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    private boolean validateSecurity(Claims claims, String currentIp, String currentFingerprint) {
-        return currentIp.equals(claims.get("ip")) &&
-               currentFingerprint.equals(claims.get("fingerprint"));
-    }
-
-    // ==================== Token操作 ====================
-
     /**
-     * 刷新令牌对
+     * 解析令牌
      */
-    public TokenPair refresh(String refreshToken, String ip, String fingerprint) {
-        if (!validate(refreshToken, ip, fingerprint)) {
-            throw new SecurityException("无效的刷新令牌");
-        }
-
-        Claims claims = parseClaims(refreshToken);
-        if (!REFRESH_TYPE.equals(claims.get("type"))) {
-            throw new SecurityException("令牌类型错误");
-        }
-
-        revoke(refreshToken);
-        UUID userId = UUID.fromString(claims.getSubject());
-
-        return new TokenPair(
-            createAccessToken(userId, ip, fingerprint),
-            createRefreshToken(userId, ip, fingerprint)
-        );
+    public Claims parse(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .requireIssuer(issuer)
+                .requireAudience(audience)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     /**
-     * 撤销令牌
+     * 获取用户ID
      */
-    public void revoke(String token) {
-        if (!StringUtils.hasText(token)) return;
-
-        try {
-            Claims claims = parseClaims(token);
-            String jti = claims.getId();
-            Date expiration = claims.getExpiration();
-
-            if (jti != null && expiration.after(new Date())) {
-                Duration ttl = Duration.ofMillis(expiration.getTime() - System.currentTimeMillis());
-                blacklistService.blacklistToken(jti, ttl);
-            }
-        } catch (Exception ignored) {}
+    public Long getUserId(String token) {
+        var uid = parse(token).get("uid");
+        return uid instanceof Number number ? number.longValue() : null;
     }
 
-    // ==================== 信息提取 ====================
-
-    public UUID getUserId(String token) {
-        return UUID.fromString(parseClaims(token).getSubject());
+    /**
+     * 获取用户名
+     */
+    public String getUsername(String token) {
+        return parse(token).getSubject();
     }
 
-    public String getIp(String token) {
-        return parseClaims(token).get("ip", String.class);
+    /**
+     * 获取用户角色
+     */
+    public String getRole(String token) {
+        return parse(token).get("role", String.class);
     }
 
-    public String getFingerprint(String token) {
-        return parseClaims(token).get("fingerprint", String.class);
-    }
-
+    /**
+     * 获取令牌类型
+     */
     public String getType(String token) {
-        return parseClaims(token).get("type", String.class);
+        return parse(token).get("type", String.class);
     }
 
+    /**
+     * 获取令牌ID
+     */
+    public String getTokenId(String token) {
+        return parse(token).getId();
+    }
+
+    /**
+     * 检查是否过期
+     */
     public boolean isExpired(String token) {
         try {
-            return parseClaims(token).getExpiration().before(new Date());
-        } catch (Exception e) {
+            return parse(token).getExpiration().before(new Date());
+        } catch (ExpiredJwtException e) {
             return true;
         }
     }
 
-    // ==================== HTTP请求处理 ====================
-
     /**
-     * 提取客户端IP
+     * 获取过期时间
      */
-    public String extractIp(HttpServletRequest request) {
-        return java.util.Arrays.stream(IP_HEADERS)
-            .map(request::getHeader)
-            .filter(ip -> StringUtils.hasText(ip) && !UNKNOWN_IP.equalsIgnoreCase(ip))
-            .map(this::getFirstIp)
-            .filter(this::isValidIp)
-            .findFirst()
-            .orElseGet(() -> {
-                String remoteAddr = request.getRemoteAddr();
-                return isValidIp(remoteAddr) ? remoteAddr : UNKNOWN_IP;
-            });
+    public Date getExpiry(String token) {
+        return parse(token).getExpiration();
     }
 
     /**
-     * 提取设备指纹
+     * 获取剩余秒数
      */
-    public String extractFingerprint(HttpServletRequest request) {
-        String fingerprint = request.getHeader(FINGERPRINT_HEADER);
-        return StringUtils.hasText(fingerprint) ? fingerprint.trim() : null;
+    public long getRemainSeconds(String token) {
+        var exp = getExpiry(token);
+        return Math.max(0, (exp.getTime() - System.currentTimeMillis()) / 1000);
     }
 
-    // ==================== 私有辅助方法 ====================
-
-    private Claims parseClaims(String token) {
-        return jwtParser.parseSignedClaims(token).getPayload();
+    /**
+     * 是否为刷新令牌
+     */
+    public boolean isRefreshToken(String token) {
+        return "refresh".equals(getType(token));
     }
 
-    private boolean isBlacklisted(String jti) {
-        return StringUtils.hasText(jti) && blacklistService.isBlacklisted(jti);
+    /**
+     * 是否为访问令牌
+     */
+    public boolean isAccessToken(String token) {
+        return "access".equals(getType(token));
     }
 
-    private void validateSecurity(String ip, String fingerprint) {
-        if (!StringUtils.hasText(ip) || UNKNOWN_IP.equals(ip)) {
-            throw new SecurityException("无效的客户端IP");
-        }
-        if (!StringUtils.hasText(fingerprint)) {
-            throw new SecurityException("缺少设备指纹");
-        }
+    /**
+     * 令牌信息
+     */
+    public record TokenInfo(
+        String id,
+        Long userId,
+        String username,
+        String role,
+        String type,
+        Date expiry,
+        long remainSeconds
+    ) {}
+
+    /**
+     * 获取令牌信息
+     */
+    public TokenInfo getInfo(String token) {
+        var claims = parse(token);
+        return new TokenInfo(
+            claims.getId(),
+            getUserId(token),
+            claims.getSubject(),
+            claims.get("role", String.class),
+            claims.get("type", String.class),
+            claims.getExpiration(),
+            getRemainSeconds(token)
+        );
     }
-
-    private String getFirstIp(String ipHeader) {
-        return ipHeader.contains(",") ? ipHeader.split(",")[0].trim() : ipHeader;
-    }
-
-    private boolean isValidIp(String ip) {
-        return StringUtils.hasText(ip) &&
-               !UNKNOWN_IP.equalsIgnoreCase(ip) &&
-               (IPv4_PATTERN.matcher(ip).matches() ||
-                IPv6_PATTERN.matcher(ip).matches() ||
-                ip.contains(":"));
-    }
-
-
-    @FunctionalInterface
-    private interface SecurityValidator {
-        boolean validate(Claims claims);
-    }
-
-    public record TokenPair(String accessToken, String refreshToken) {}
 }
