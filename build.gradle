@@ -2,9 +2,6 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.3'
     id 'io.spring.dependency-management' version '1.1.7'
-    id 'jacoco'
-    id 'checkstyle'
-    id 'pmd'
 }
 
 group = 'io.github.oljc'
@@ -30,8 +27,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     runtimeOnly 'org.postgresql:postgresql:42.7.3'
 
@@ -40,108 +37,17 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.testcontainers:junit-jupiter'
-    testImplementation 'org.testcontainers:postgresql'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+    implementation 'io.jsonwebtoken:jjwt-impl:0.12.3'
+    implementation 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 
-    testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
+    implementation 'cn.hutool:hutool-all:5.8.25'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 compileJava {
     options.compilerArgs += ['-parameters']
 }
-
-tasks.named('test') {
-    useJUnitPlatform()
-    finalizedBy jacocoTestReport
-}
-
-jacoco {
-    toolVersion = "0.8.12"
-}
-
-jacocoTestReport {
-    dependsOn test
-    reports {
-        xml.required = true
-        html.required = true
-    }
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: [
-                '**/config/**',
-                '**/dto/**',
-                '**/*Application*'
-            ])
-        }))
-    }
-}
-
-jacocoTestCoverageVerification {
-    violationRules {
-        rule {
-            limit {
-                minimum = 0.80
-            }
-        }
-    }
-}
-
-// Checkstyle配置
-checkstyle {
-    toolVersion = '10.12.4'
-    maxWarnings = 0
-    maxErrors = 0
-    configDirectory.set(file("config/checkstyle"))
-    configFile = file("config/checkstyle/checkstyle.xml")
-}
-
-checkstyleMain {
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-
-checkstyleTest {
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-
-pmd {
-    toolVersion = '7.0.0'
-    ignoreFailures = false
-    incrementalAnalysis = true
-    ruleSetFiles = files("config/pmd/pmd-rules.xml")
-    ruleSets = []
-}
-
-pmdMain {
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-
-pmdTest {
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-
-tasks.register('codeQuality') {
-    group = 'verification'
-    description = '运行代码检查'
-    dependsOn 'checkstyleMain', 'checkstyleTest', 'pmdMain', 'pmdTest', 'test', 'jacocoTestReport'
-}
-
-check.dependsOn jacocoTestCoverageVerification

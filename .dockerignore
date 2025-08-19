@@ -1,52 +1,52 @@
-# Gradle
-.gradle/
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-# IDE
-.idea/
-*.iws
-*.iml
-*.ipr
-.vscode/
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
 # Git
-.git/
+.git
 .gitignore
 .gitattributes
 
-# Docker
-Dockerfile
-docker-compose*.yml
-.dockerignore
+# 构建产物
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradle/
+out/
+target/
 
-# Documentation
-*.md
-docs/
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
 
-# Logs
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 日志
 logs/
 *.log
 
-# Test
-**/test/**
-**/*Test.java
-**/*Tests.java
+# 测试报告
+test-results/
+coverage/
 
-# Other
-.env
-.env.*
-*.pid
-*.seed
-*.pid.lock
+# 临时文件
+tmp/
+temp/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# 文档
+README.md
+CONTRIBUTING.md
+LICENSE
+*.md
+
+# 配置文件
+.env*
+!.env.example
+
+# 依赖缓存
+node_modules/
