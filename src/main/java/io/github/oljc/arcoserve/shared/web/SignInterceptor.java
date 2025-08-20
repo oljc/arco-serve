@@ -26,7 +26,7 @@ public class SignInterceptor implements HandlerInterceptor {
 
             if (sig != null && !sig.required()) return true;
 
-            long maxAge = sig != null ? sig.maxAge() : 300L;
+            long maxAge = sig != null ? sig.maxAge() : 30L;
 
             try {
                 SignUtils.verify(request, SECRET_ID, SECRET_KEY, maxAge);
