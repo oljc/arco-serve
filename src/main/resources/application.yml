@@ -26,13 +26,16 @@ spring:
       host: localhost
       port: 6379
       password: ljc@redis
-      timeout: 2000ms
+      timeout: 1000ms
       lettuce:
         pool:
-          max-active: 8
+          max-active: 32
           max-idle: 8
-          min-idle: 0
-          max-wait: -1ms
+          min-idle: 2
+          max-wait: 1000ms
+        shutdown-timeout: 200ms
+      connect-timeout: 1000ms
+      command-timeout: 1000ms
 
   # 缓存配置
   cache:
